@@ -41,7 +41,7 @@ var primeri = [
   } 
 ];
 
-var ehrPrimeri = ['624826a3-b0b6-4e49-9c98-682b9cf126ae', 'e12f9045-fcdf-48ca-a850-164b684b2e3b', 'c178e2ab-812c-475b-9d83-6fa43360c829'];
+var ehrPrimeri = ['b49d47d9-d0c9-446f-9648-3fbda80b484a', 'af867ccc-4066-4c7c-84a1-ffb1f92f397c', '2a60ae91-0d3e-4f90-a9ef-f6d144dfdeff'];
 
 /**
  * Prijava v sistem z privzetim uporabnikom za predmet OIS in pridobitev
@@ -109,7 +109,7 @@ function generirajPodatke(stPacienta, callback) {
               // https://rest.ehrscape.com/rest/v1/template/Vital%20Signs/example
         		    "ctx/language": "en",
         		    "ctx/territory": "SI",
-        		    "ctx/time": new Date().toISOString(),
+        		    "ctx/time": new Date(new Date() - (3 - i) * 1000 * 3600 * 24).toISOString(),
         		    "vital_signs/height_length/any_event/body_height_length": pacient.meritve[i].visina,
         		    "vital_signs/body_weight/any_event/body_weight": pacient.meritve[i].teza
         		};
@@ -117,6 +117,9 @@ function generirajPodatke(stPacienta, callback) {
         		    ehrId: ehrId,
         		    templateId: 'Vital Signs'
         		};
+            $.ajaxSetup({
+              headers: {"Ehr-Session": getSessionId()}
+          	});
         		$.ajax({
         		    url: baseUrl + "/composition?" + $.param(parametriZahteve),
         		    type: 'POST',
@@ -170,7 +173,63 @@ function pridobiPodatke(ehrId, callback) {
 	    	success: function (data) {
 				var party = data.party;
 				console.log('Party data', data);
+				var diff = new Date() - new Date(party.dateOfBirth);
+        countryData[0] = diff / 1000 / 3600 / 24 / 365;
+        patient = party;
 				callback(getCountryLabel(party.address.address));
+				
+				$.ajax({
+				    url: baseUrl + "/view/" + ehrId + "/" + "weight",
+				    type: 'GET',
+				    headers: {"Ehr-Session": sessionId},
+				    success: function (res) {
+				    	if (res.length > 0) {
+					    	var results = "";
+					    	var j = 0;
+  			        for (var i in res) {
+  			          results += '<li ind="' + j + '" class="list-group-item">Teža: ' + res[i].weight + " " + res[i].unit + '</li>';
+  			          j++;
+  			        }
+  			        $("#ulmeritve").html(results);
+  			        
+                $('#ulmeritve > li').each(function(index) {
+                  $(this).on("click", function(){
+                    $('#ulmeritve > li').removeClass('active');
+                    var $this = $(this);
+                    $this.addClass('active');
+                    var ind = $this.attr('ind');
+                    var bmi = Math.floor(meritveTeza[ind].weight / (meritveVisina[ind].height * meritveVisina[ind].height / 10000));
+                    var predvidenolet = countryData[3] - countryData[0];
+                    $('#meritev-opis').html('Teža: ' + meritveTeza[i].weight + " " + res[i].unit + ', visina: ' + meritveVisina[i].height + ' ' + meritveVisina[i].unit + ', BMI: ' + bmi);
+                    if (bmi < 23) $('#meritev-opis').append('<br>Odlično! Predvideno let še: ' + Math.round(predvidenolet + countryData[4] - countryData[3]));
+                    else if (bmi < 30) $('#meritev-opis').append('<br>Dobro! Predvideno let še: ' + Math.round(predvidenolet));
+                    else if (bmi <= 37) $('#meritev-opis').append('<br>Slabo! Predvideno let še: ' + Math.round(predvidenolet - (Math.random() * 4 + 2)));
+                    else $('#meritev-opis').append('<br>Zelo slabo! Predvideno let še: ' + Math.round(predvidenolet - (Math.random() * 2 + 8)));
+                  });
+                });
+				    	} else {
+				    	  $("#ulmeritve").html('');
+				    		console.log('Ni meritev!');
+				    	}
+				    	meritveTeza = res;
+				    },
+				    error: function() {
+			    	  $("#ulmeritve").html('');
+			    		console.log('Napaka!');
+				    }
+				});
+				$.ajax({
+				    url: baseUrl + "/view/" + ehrId + "/" + "height",
+				    type: 'GET',
+				    headers: {"Ehr-Session": sessionId},
+				    success: function (res) {
+				    	meritveVisina = res;
+				    },
+				    error: function() {
+			    		console.log('Napaka!');
+				    }
+				});
+					
 			},
 			error: function(err) {
 				console.error('Napaka', err);
@@ -191,19 +250,22 @@ function pridobiStatistiko(country_label) {
   var requestURL = 'http://apps.who.int/gho/athena/data/GHO/WHOSIS_000001,WHOSIS_000002.json?profile=simple&filter=COUNTRY:' + country_label +';YEAR:2015';
   $.getJSON(JSONProxy + encodeURIComponent(requestURL), function(data){
     console.log('stats', data.fact);
-    countryData[0] = 0;
     for (var i = 0; i < data.fact.length; i++) {
       var t = data.fact[i];
       if (t.dim.GHO == "Life expectancy at birth (years)") {
         if (t.dim.SEX == "Both sexes") {
-          countryData[3] = t.Value;
+          countryData[3] = parseInt(t.Value);
         } else if (t.dim.SEX == "Male") {
-          countryData[1] = t.Value;
+          countryData[1] = parseInt(t.Value);
         } else if (t.dim.SEX == "Female") {
-          countryData[2] = t.Value;
+          countryData[2] = parseInt(t.Value);
         }
+      } else if (t.dim.GHO == "Healthy life expectancy (HALE) at birth (years)") {
+        countryData[4] = parseInt(t.Value);
       }
     }
+    myChart.data.datasets[0].data = countryData;
+    myChart.update();
   });
 }
 
@@ -212,11 +274,15 @@ function ehrIzPrimera(stevilka) {
 }
 
 
-pridobiPodatke('2cbf35e7-6a16-45e6-b591-3a6fa25aced8', pridobiStatistiko);
 var myChart;
 var countryData = [];
+var patient;
+var meritveTeza;
+var meritveVisina;
 $(document).ready(function() {
+  $('.meritve').hide();
   var ctx = document.getElementById("myChart");
+  $(ctx).hide();
   myChart = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -253,4 +319,14 @@ $(document).ready(function() {
           }
       }
   });
+  
+  $('#getDataButton').click(function() {
+    var text = $('#ehrInput').val();
+    if (!text) return;
+    pridobiPodatke(text, pridobiStatistiko);
+    $('#myChart').slideDown();
+    $('.meritve').slideDown();
+    //pridobiPodatke('2cbf35e7-6a16-45e6-b591-3a6fa25aced8', pridobiStatistiko);
+  });
+  
 });
