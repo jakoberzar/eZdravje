@@ -163,6 +163,9 @@ function generirajPodatkeCall() {
 function pridobiPodatke(ehrId, callback) {
   sessionId = getSessionId();
 
+  $.ajaxSetup({
+    headers: {"Ehr-Session": sessionId}
+	});
 	if (!ehrId || ehrId.trim().length == 0) {
 				console.error('ehrId ni podan!');
 	} else {
