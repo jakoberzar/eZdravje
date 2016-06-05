@@ -9,6 +9,8 @@
   </style>
   <script src="knjiznice/js/jquery-2.2.3.min.js"></script>
   <script src="knjiznice/js/bootstrap.min.js"></script>
+  <script src="knjiznice/js/countries_data.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.1.4/Chart.js"></script>
   <script src="knjiznice/js/koda.js"></script>
 </head>
 <body>
@@ -22,14 +24,14 @@
           <span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span>
         </button>
         <!-- ZAČETEK: Ime vaše aplikacije -->
-        <a class="navbar-brand" href="index.html">{ime vaše aplikacije}</a>
+        <a class="navbar-brand" href="index.html">TTL</a>
         <!-- KONEC: Ime vaše aplikacije -->
       </div>
       <div class="collapse navbar-collapse" id="menujska-vrstica">
         <ul class="nav navbar-nav">
           <li><a href="opis.html">Opis ideje</a></li>
           <li><a href="nacrt.html">Načrt informacijske rešitve</a></li>
-          <li><a href="#">Generiranje podatkov</a></li>
+          <li><a href="javascript:generirajPodatkeCall()">Generiranje podatkov</a></li>
         </ul>
       </div>
     </div>
@@ -39,8 +41,45 @@
   <!-- ZAČETEK: Vsebina aplikacije -->
   <div class="container">
     <div class="row">
-      <div class="col-lg-12 text-center">
-        <p class="lead"><strong>TO-DO</strong>: Na tem mestu implementirajte vašo aplikacijo.</p>
+      <div class="col-lg-12">
+        <form class="form-inline setEhr">
+          <div class="dropdown" style="display:inline-block">
+            <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
+            >
+              Izberi primer
+              <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+              <li><a href="javascript:ehrIzPrimera(0);">John Smith</a></li>
+              <li><a href="javascript:ehrIzPrimera(1);">Vebastian Settel</a></li>
+              <li><a href="javascript:ehrIzPrimera(2);">Mina Taze</a></li>
+            </ul>
+          </div>
+          <div class="form-group">
+            <input type="text" id="ehrInput" value="" placeholder="EHR ID" style="width:285px">
+            <button class="btn btn-primary btn-default" id="getDataButton">Pridobi podatke</button>
+          </div>
+        </form>
+        <br>
+        <div class="meritve">
+          <h4>Meritve</h4>
+          <div class="row">
+            <div class="col-md-4">
+              <ul class="list-group">
+                <li class="list-group-item active">Cras justo odio</li>
+                <li class="list-group-item">Dapibus ac facilisis in</li>
+                <li class="list-group-item">Morbi leo risus</li>
+                <li class="list-group-item">Porta ac consectetur ac</li>
+                <li class="list-group-item">Vestibulum at eros</li>
+              </ul>
+            </div>
+            <div class="col-md-8">
+              Nobena meritev ni izbrana
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6 text-center"><canvas id="myChart" width="200" height="200"></canvas></div>
+        
       </div>
     </div>
   </div>
